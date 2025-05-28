@@ -18,6 +18,65 @@
             display: flex;
         }
 
+        .api-config {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: white;
+            padding: 15px;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            z-index: 1001;
+            min-width: 300px;
+            /* 默认隐藏 */
+            display: none;
+        }
+
+        .api-config.open {
+            display: block; /* 显示时设置为 block */
+        }
+
+        .api-config input, .api-config select { /* Added select for styling consistency */
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid #e8eaed;
+            border-radius: 6px;
+            margin: 5px 0;
+            font-size: 14px;
+        }
+
+        .api-config button {
+            background: #1a73e8;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            margin-top: 10px;
+        }
+
+        .api-config button:hover {
+            background: #1557b0;
+        }
+
+        .api-status {
+            margin-top: 10px;
+            padding: 8px;
+            border-radius: 6px;
+            font-size: 12px;
+        }
+
+        .api-status.success {
+            background: #e8f5e8;
+            color: #137333;
+        }
+
+        .api-status.error {
+            background: #fce8e6;
+            color: #d93025;
+        }
+
         /* 侧边栏 */
         .sidebar {
             width: 280px;
@@ -159,6 +218,20 @@
             background: #f1f3f4;
         }
 
+        .settings-btn {
+            background: none;
+            border: none;
+            padding: 8px;
+            cursor: pointer;
+            border-radius: 4px;
+            font-size: 20px;
+            color: #5f6368;
+        }
+        
+        .settings-btn:hover {
+            background: #f1f3f4;
+        }
+
         /* 聊天区域 */
         .chat-container {
             flex: 1;
@@ -195,8 +268,6 @@
             color: #5f6368;
             margin-bottom: 40px;
         }
-
-
 
         .messages {
             max-width: 768px;
@@ -362,7 +433,7 @@
         }
 
         /* 响应式设计 */
-                    @media (max-width: 768px) {
+        @media (max-width: 768px) {
             .sidebar {
                 position: fixed;
                 height: 100vh;
@@ -385,6 +456,13 @@
             .message-content {
                 max-width: 85%;
             }
+
+            .api-config {
+                top: 10px;
+                right: 10px;
+                left: 10px;
+                min-width: auto;
+            }
         }
 
         .overlay {
@@ -397,10 +475,39 @@
             background: rgba(0,0,0,0.5);
             z-index: 999;
         }
+
+        .api-config-close-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: none;
+            border: none;
+            font-size: 20px;
+            cursor: pointer;
+            color: #5f6368;
+        }
+        .api-config-close-btn:hover {
+            color: #d93025;
+        }
     </style>
 </head>
 <body>
-    <!-- 侧边栏 -->
+    <div class="api-config" id="apiConfig">
+        <button class="api-config-close-btn" onclick="toggleApiConfig()">✕</button>
+        <h3 style="margin-bottom: 10px; font-size: 16px;">API配置</h3>
+        <select id="apiProvider" onchange="switchApiProvider()">
+            <option value="gemini">Google Gemini</option>
+            <option value="openai">OpenAI GPT</option>
+            <option value="claude">Claude API</option>
+            <option value="custom">自定义API</option>
+        </select>
+        <input type="password" id="apiKey" placeholder="输入API密钥" />
+        <input type="text" id="apiUrl" placeholder="API地址 (可选)" style="display: none;" />
+        <button onclick="saveApiConfig()">保存配置</button>
+        <button onclick="testApiConnection()" style="background: #34a853;">测试连接</button>
+        <div id="apiStatus" class="api-status" style="display: none;"></div>
+    </div>
+
     <div class="sidebar" id="sidebar">
         <div class="sidebar-header">
             <div class="logo">
@@ -410,40 +517,34 @@
             <button class="new-chat-btn" onclick="startNewChat()">新建对话</button>
         </div>
         <div class="chat-history" id="chatHistory">
-            <!-- 聊天历史将在这里动态添加 -->
         </div>
     </div>
 
-    <!-- 遮罩层 -->
     <div class="overlay" id="overlay" onclick="closeSidebar()"></div>
 
-    <!-- 主要内容 -->
     <div class="main-content">
         <div class="header">
             <div style="display: flex; align-items: center; gap: 16px;">
                 <button class="menu-btn" onclick="toggleSidebar()">☰</button>
                 <div class="model-selector">
                     <span>🤖</span>
-                    <span>Gemini Pro</span>
+                    <span id="currentModel">Gemini Pro</span>
                 </div>
             </div>
+            <button class="settings-btn" onclick="toggleApiConfig()">⚙️</button>
         </div>
 
         <div class="chat-container" id="chatContainer">
-            <!-- 欢迎屏幕 -->
             <div class="welcome-screen" id="welcomeScreen">
-                <h1 class="welcome-title">你好，Gemini</h1>
+                <h1 class="welcome-title">你好，AI助手</h1>
                 <p class="welcome-subtitle">我是你的AI助手，可以帮你回答问题、创作内容、分析问题等</p>
             </div>
 
-            <!-- 消息容器 -->
             <div class="messages" id="messages" style="display: none;">
-                <!-- 消息将在这里动态添加 -->
             </div>
 
-            <!-- 输入提示 -->
             <div class="typing-indicator" id="typingIndicator">
-                <span>Gemini正在思考</span>
+                <span>AI正在思考</span>
                 <div class="typing-dots">
                     <div class="typing-dot"></div>
                     <div class="typing-dot"></div>
@@ -452,7 +553,6 @@
             </div>
         </div>
 
-        <!-- 输入区域 -->
         <div class="input-container">
             <div class="input-wrapper">
                 <textarea 
@@ -476,13 +576,281 @@
         let conversations = [];
         let currentConversationId = null;
         let isTyping = false;
+        let apiConfig = {
+            provider: 'gemini',
+            apiKey: '',
+            apiUrl: ''
+        };
 
         // 初始化
         document.addEventListener('DOMContentLoaded', function() {
-            loadChatHistory();
+            loadApiConfig(); // Load API config first
+            loadChatHistory(); // Then load chat history which might depend on active conversation
+            // If there are conversations, load the last active one or the first one
+            if (conversations.length > 0) {
+                // Try to load the previously active conversation if ID is stored
+                const savedCurrentConversationId = localStorage.getItem('currentConversationId');
+                if (savedCurrentConversationId && conversations.some(c => c.id === savedCurrentConversationId)) {
+                    loadConversation(savedCurrentConversationId);
+                } else {
+                    loadConversation(conversations[0].id); // Load the most recent conversation
+                }
+            } else {
+                showWelcomeScreen(); // If no conversations, show welcome screen
+            }
         });
 
-        // 切换侧边栏
+        // API配置相关函数
+        function toggleApiConfig() {
+            const apiConfigPanel = document.getElementById('apiConfig');
+            apiConfigPanel.classList.toggle('open');
+        }
+
+        function switchApiProvider() {
+            const provider = document.getElementById('apiProvider').value;
+            const apiUrlInput = document.getElementById('apiUrl');
+            const currentModel = document.getElementById('currentModel');
+            
+            switch(provider) {
+                case 'gemini':
+                    apiUrlInput.style.display = 'none';
+                    currentModel.textContent = 'Gemini Pro';
+                    document.getElementById('apiKey').placeholder = '输入Google AI API密钥';
+                    break;
+                case 'openai':
+                    apiUrlInput.style.display = 'none';
+                    currentModel.textContent = 'GPT-3.5 Turbo'; // Changed to common OpenAI model
+                    document.getElementById('apiKey').placeholder = '输入OpenAI API密钥';
+                    break;
+                case 'claude':
+                    apiUrlInput.style.display = 'none';
+                    currentModel.textContent = 'Claude Sonnet'; // Changed to a specific Claude model
+                    document.getElementById('apiKey').placeholder = '输入Anthropic API密钥';
+                    break;
+                case 'custom':
+                    apiUrlInput.style.display = 'block';
+                    currentModel.textContent = '自定义模型';
+                    document.getElementById('apiKey').placeholder = '输入API密钥';
+                    document.getElementById('apiUrl').placeholder = '输入完整API地址';
+                    break;
+            }
+            saveApiConfig(); // Save configuration immediately after switching provider
+        }
+
+        function saveApiConfig() {
+            apiConfig = {
+                provider: document.getElementById('apiProvider').value,
+                apiKey: document.getElementById('apiKey').value,
+                apiUrl: document.getElementById('apiUrl').value
+            };
+            localStorage.setItem('apiConfig', JSON.stringify(apiConfig)); // Save to localStorage
+            showApiStatus('配置已保存', 'success');
+            // Update UI with current API config
+            document.getElementById('apiProvider').value = apiConfig.provider;
+            document.getElementById('apiKey').value = apiConfig.apiKey;
+            document.getElementById('apiUrl').value = apiConfig.apiUrl;
+            switchApiProvider(); // Re-apply UI changes based on provider
+        }
+
+        async function testApiConnection() {
+            if (!apiConfig.apiKey) {
+                showApiStatus('请先输入API密钥', 'error');
+                return;
+            }
+
+            showApiStatus('正在测试连接...', 'success');
+            
+            try {
+                // For testing, send a simple message to the API
+                let testMessage = 'Hello, this is a test message.';
+                let responseContent = await callAPI(testMessage); // Call the API with a test message
+                
+                if (responseContent) {
+                    showApiStatus('连接成功！', 'success');
+                } else {
+                    showApiStatus('连接失败，请检查配置', 'error');
+                }
+            } catch (error) {
+                showApiStatus(`连接失败: ${error.message}`, 'error');
+            }
+        }
+
+        function showApiStatus(message, type) {
+            const statusEl = document.getElementById('apiStatus');
+            statusEl.textContent = message;
+            statusEl.className = `api-status ${type}`;
+            statusEl.style.display = 'block';
+            
+            setTimeout(() => {
+                statusEl.style.display = 'none';
+            }, 3000);
+        }
+
+        function loadApiConfig() {
+            const saved = localStorage.getItem('apiConfig');
+            if (saved) {
+                apiConfig = JSON.parse(saved);
+                document.getElementById('apiProvider').value = apiConfig.provider;
+                document.getElementById('apiKey').value = apiConfig.apiKey;
+                document.getElementById('apiUrl').value = apiConfig.apiUrl;
+                switchApiProvider(); // Apply correct UI based on loaded config
+            }
+        }
+
+        // 调用不同API的统一接口
+        async function callAPI(message) {
+            switch(apiConfig.provider) {
+                case 'gemini':
+                    return await callGeminiAPI(message);
+                case 'openai':
+                    return await callOpenAIAPI(message);
+                case 'claude':
+                    return await callClaudeAPI(message);
+                case 'custom':
+                    return await callCustomAPI(message);
+                default:
+                    throw new Error('未知的API提供商');
+            }
+        }
+
+        // Google Gemini API调用
+        async function callGeminiAPI(message) {
+            const url = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent';
+            
+            try {
+                const response = await fetch(`${url}?key=${apiConfig.apiKey}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        contents: [{
+                            parts: [{
+                                text: message
+                            }]
+                        }]
+                    })
+                });
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.error?.message || `HTTP ${response.status}`);
+                }
+
+                const data = await response.json();
+                return data.candidates?.[0]?.content?.parts?.[0]?.text || '抱歉，我无法生成回复。';
+            } catch (error) {
+                console.error('Gemini API调用失败:', error);
+                throw error;
+            }
+        }
+
+        // OpenAI API调用
+        async function callOpenAIAPI(message) {
+            const url = 'https://api.openai.com/v1/chat/completions';
+            
+            try {
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${apiConfig.apiKey}`
+                    },
+                    body: JSON.stringify({
+                        model: 'gpt-3.5-turbo', // Using gpt-3.5-turbo as a common default
+                        messages: [
+                            {
+                                role: 'user',
+                                content: message
+                            }
+                        ],
+                        temperature: 0.7,
+                        max_tokens: 1000
+                    })
+                });
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.error?.message || `HTTP ${response.status}`);
+                }
+
+                const data = await response.json();
+                return data.choices?.[0]?.message?.content || '抱歉，我无法生成回复。';
+            } catch (error) {
+                console.error('OpenAI API调用失败:', error);
+                throw error;
+            }
+        }
+
+        // Claude API调用
+        async function callClaudeAPI(message) {
+            const url = 'https://api.anthropic.com/v1/messages';
+            
+            try {
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'x-api-key': apiConfig.apiKey,
+                        'anthropic-version': '2023-06-01' // Recommended Anthropic API version
+                    },
+                    body: JSON.stringify({
+                        model: 'claude-3-sonnet-20240229', // Using Claude Sonnet as a common default
+                        max_tokens: 1000,
+                        messages: [
+                            {
+                                role: 'user',
+                                content: message
+                            }
+                        ]
+                    })
+                });
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.error?.message || `HTTP ${response.status}`);
+                }
+
+                const data = await response.json();
+                return data.content?.[0]?.text || '抱歉，我无法生成回复。';
+            } catch (error) {
+                console.error('Claude API调用失败:', error);
+                throw error;
+            }
+        }
+
+        // 自定义API调用
+        async function callCustomAPI(message) {
+            if (!apiConfig.apiUrl) {
+                throw new Error('请配置自定义API地址');
+            }
+
+            try {
+                const response = await fetch(apiConfig.apiUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': apiConfig.apiKey ? `Bearer ${apiConfig.apiKey}` : undefined // Optional API key for custom
+                    },
+                    body: JSON.stringify({
+                        message: message // Assuming custom API expects a 'message' field
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+
+                const data = await response.json();
+                // Assuming custom API returns a 'response' or 'message' field
+                return data.response || data.message || '抱歉，我无法生成回复。';
+            } catch (error) {
+                console.error('自定义API调用失败:', error);
+                throw error;
+            }
+        }
+
+        // 原有的聊天功能
         function toggleSidebar() {
             const sidebar = document.getElementById('sidebar');
             const overlay = document.getElementById('overlay');
@@ -501,41 +869,33 @@
             overlay.style.display = 'none';
         }
 
-        // 开始新对话
         function startNewChat() {
             currentConversationId = Date.now().toString();
             const newConversation = {
                 id: currentConversationId,
                 title: '新对话',
                 messages: [],
-                timestamp: new Date()
+                timestamp: new Date().toISOString() // Store as ISO string for better handling
             };
             
             conversations.unshift(newConversation);
             updateChatHistory();
             showWelcomeScreen();
             closeSidebar();
+            saveChatHistory(); // Save after new chat
         }
 
-        // 显示欢迎屏幕
         function showWelcomeScreen() {
             document.getElementById('welcomeScreen').style.display = 'flex';
             document.getElementById('messages').style.display = 'none';
+            document.getElementById('messages').innerHTML = ''; // Clear messages when showing welcome
         }
 
-        // 隐藏欢迎屏幕
         function hideWelcomeScreen() {
             document.getElementById('welcomeScreen').style.display = 'none';
             document.getElementById('messages').style.display = 'block';
         }
 
-        // 发送建议消息
-        function sendSuggestion(text) {
-            document.getElementById('messageInput').value = text;
-            sendMessage();
-        }
-
-        // 处理键盘事件
         function handleKeyDown(event) {
             if (event.key === 'Enter' && !event.shiftKey) {
                 event.preventDefault();
@@ -543,75 +903,46 @@
             }
         }
 
-        // 自动调整文本框高度
         function adjustTextareaHeight(textarea) {
             textarea.style.height = 'auto';
             textarea.style.height = Math.min(textarea.scrollHeight, 120) + 'px';
         }
 
-        // 发送消息
         async function sendMessage() {
             const input = document.getElementById('messageInput');
             const message = input.value.trim();
             
             if (!message || isTyping) return;
 
-            // 如果没有当前对话，创建新对话
+            if (!apiConfig.apiKey) {
+                showError('请先配置API密钥');
+                return;
+            }
+
             if (!currentConversationId) {
                 startNewChat();
             }
 
-            // 添加用户消息
             addMessage('user', message);
             input.value = '';
             input.style.height = 'auto';
             
-            // 隐藏欢迎屏幕
             hideWelcomeScreen();
-            
-            // 显示输入状态
             showTypingIndicator();
             
             try {
-                // 这里应该调用真实的Gemini API
-                // 由于安全原因，这里使用模拟响应
-                const response = await simulateGeminiResponse(message);
+                const response = await callAPI(message);
                 addMessage('assistant', response);
-                
-                // 更新对话标题（使用消息的前几个字）
                 updateConversationTitle(message);
-                
+                saveChatHistory(); // Save after message sent
             } catch (error) {
                 console.error('发送消息失败:', error);
-                showError('发送消息失败，请稍后重试');
+                showError(`发送失败: ${error.message}`);
             } finally {
                 hideTypingIndicator();
             }
         }
 
-        // 模拟Gemini响应
-        async function simulateGeminiResponse(message) {
-            // 模拟网络延时
-            await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 2000));
-            
-            return `感谢您的提问"${message}"。
-
-作为您的AI助手，我很乐意为您提供帮助。虽然我无法访问真实的Gemini API，但在实际应用中，我会：
-
-1. **理解您的问题**：分析您的意图和需求
-2. **提供准确信息**：基于我的知识库给出详细回答
-3. **个性化回复**：根据上下文提供相关建议
-4. **持续学习**：不断改进回答质量
-
-如果您有具体问题，我会尽力提供有用的信息和建议。请注意，要使用真实的Gemini功能，您需要：
-- 获取Google AI API密钥
-- 集成官方Gemini API
-- 处理实际的对话逻辑
-
-有什么其他问题我可以帮您解答吗？`;
-        }
-
-        // 添加消息到界面
         function addMessage(role, content) {
             const messagesContainer = document.getElementById('messages');
             const messageDiv = document.createElement('div');
@@ -619,7 +950,7 @@
             
             const avatar = document.createElement('div');
             avatar.className = `message-avatar ${role}-avatar`;
-            avatar.textContent = role === 'user' ? '你' : 'G';
+            avatar.textContent = role === 'user' ? '你' : 'AI';
             
             const messageContent = document.createElement('div');
             messageContent.className = 'message-content';
@@ -635,19 +966,17 @@
             
             messagesContainer.appendChild(messageDiv);
             
-            // 保存到当前对话
+            // Add message to the current conversation in the conversations array
             if (currentConversationId) {
                 const conversation = conversations.find(c => c.id === currentConversationId);
                 if (conversation) {
-                    conversation.messages.push({ role, content, timestamp: new Date() });
+                    conversation.messages.push({ role, content, timestamp: new Date().toISOString() });
                 }
             }
             
-            // 滚动到底部
             scrollToBottom();
         }
 
-        // 格式化消息内容
         function formatMessage(content) {
             return content
                 .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
@@ -655,7 +984,6 @@
                 .replace(/\n/g, '<br>');
         }
 
-        // 显示输入指示器
         function showTypingIndicator() {
             isTyping = true;
             document.getElementById('typingIndicator').style.display = 'flex';
@@ -663,14 +991,12 @@
             scrollToBottom();
         }
 
-        // 隐藏输入指示器
         function hideTypingIndicator() {
             isTyping = false;
             document.getElementById('typingIndicator').style.display = 'none';
             document.getElementById('sendBtn').disabled = false;
         }
 
-        // 显示错误消息
         function showError(message) {
             const chatContainer = document.getElementById('chatContainer');
             const errorDiv = document.createElement('div');
@@ -683,7 +1009,6 @@
             }, 5000);
         }
 
-        // 滚动到底部
         function scrollToBottom() {
             const chatContainer = document.getElementById('chatContainer');
             setTimeout(() => {
@@ -691,19 +1016,18 @@
             }, 100);
         }
 
-        // 更新对话标题
         function updateConversationTitle(firstMessage) {
             if (currentConversationId) {
                 const conversation = conversations.find(c => c.id === currentConversationId);
-                if (conversation && conversation.title === '新对话') {
+                if (conversation && conversation.title === '新对话' && firstMessage) { // Only update if still default title
                     conversation.title = firstMessage.length > 20 ? 
                         firstMessage.substring(0, 20) + '...' : firstMessage;
                     updateChatHistory();
+                    saveChatHistory(); // Save after title update
                 }
             }
         }
 
-        // 更新聊天历史
         function updateChatHistory() {
             const chatHistory = document.getElementById('chatHistory');
             chatHistory.innerHTML = '';
@@ -722,35 +1046,32 @@
                 
                 chatHistory.appendChild(chatItem);
             });
+            saveChatHistory(); // Save after history UI update
         }
 
-        // 删除对话
         function deleteConversation(conversationId) {
-            // 确认删除
             if (!confirm('确定要删除这个对话吗？')) {
                 return;
             }
             
-            // 从数组中移除对话
             conversations = conversations.filter(c => c.id !== conversationId);
             
-            // 如果删除的是当前对话，切换到其他对话或显示欢迎屏幕
             if (currentConversationId === conversationId) {
                 if (conversations.length > 0) {
-                    loadConversation(conversations[0].id);
+                    loadConversation(conversations[0].id); // Load the first conversation if active one deleted
                 } else {
                     currentConversationId = null;
                     showWelcomeScreen();
                 }
             }
             
-            // 更新界面
             updateChatHistory();
+            saveChatHistory(); // Save after deletion
         }
 
-        // 加载对话
         function loadConversation(conversationId) {
             currentConversationId = conversationId;
+            localStorage.setItem('currentConversationId', currentConversationId); // Save active conversation ID
             const conversation = conversations.find(c => c.id === conversationId);
             
             if (conversation) {
@@ -766,12 +1087,12 @@
                     });
                 }
                 
-                updateChatHistory();
+                updateChatHistory(); // To update active styling
+                scrollToBottom(); // Ensure scroll to bottom on load
                 closeSidebar();
             }
         }
 
-        // 添加消息到UI（不保存到对话记录）
         function addMessageToUI(role, content) {
             const messagesContainer = document.getElementById('messages');
             const messageDiv = document.createElement('div');
@@ -779,7 +1100,7 @@
             
             const avatar = document.createElement('div');
             avatar.className = `message-avatar ${role}-avatar`;
-            avatar.textContent = role === 'user' ? '你' : 'G';
+            avatar.textContent = role === 'user' ? '你' : 'AI';
             
             const messageContent = document.createElement('div');
             messageContent.className = 'message-content';
@@ -796,14 +1117,24 @@
             messagesContainer.appendChild(messageDiv);
         }
 
-        // 加载聊天历史
+        function saveChatHistory() {
+            localStorage.setItem('conversations', JSON.stringify(conversations));
+        }
+
         function loadChatHistory() {
-            // 这里可以从localStorage或服务器加载历史记录
-            // 为了演示，我们创建一个空的历史记录
+            const savedConversations = localStorage.getItem('conversations');
+            if (savedConversations) {
+                conversations = JSON.parse(savedConversations);
+                // Ensure timestamps are correctly handled if needed (e.g., for sorting)
+                conversations.forEach(conv => {
+                    conv.timestamp = new Date(conv.timestamp);
+                });
+                // Sort by timestamp descending (most recent first)
+                conversations.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
+            }
             updateChatHistory();
         }
 
-        // 响应式处理
         window.addEventListener('resize', function() {
             if (window.innerWidth > 768) {
                 document.getElementById('sidebar').classList.remove('open');
